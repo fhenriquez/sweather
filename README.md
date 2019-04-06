@@ -22,7 +22,17 @@ geolocate
 
 ## Usage
 ```
+Usage: sweather "location" [options]
+Description:	 3 Day forecast for US location.
 
+required arguments:
+<location>	Location name.
+
+optional arguments:
+-d|--day		Day's forecast.
+-h|--help		Show this help message and exit.
+-t|--hourly		Day's hourly forecast.
+-w|--week		Week's forecast.
 ``` 
 
 ## Contributing
