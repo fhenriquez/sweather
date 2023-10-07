@@ -3,24 +3,79 @@
 # Name: Franklin Henriquez                                              #
 # Author: Franklin Henriquez (franklin.a.henriquez@gmail.com)           #
 # Creation Date: 04Apr2019                                              #
-# Last Modified: 05Apr2019                                              #
+# Last Modified: 07Oct2023                                              #
 # Description:	Gets weather information for USA, this is using the 	#
-#               https://www.weather.gov/documentation/services-web-api  # 
+#               https://www.weather.gov/documentation/services-web-api  #
 #                                                                       #
-# Version: 0.1.0                                                        #
+# Version: 0.3.0                                                        #
 #                                                                       #
 #########################################################################
 
-#set -o errexit
-#set -o pipefail
-set -o nounset
-# set -o xtrace
+# Required binaries:
+# - GNU bash 4+
+# - getopt
+# - curl
+# - jq
+# - awk
+
+# Notes:
+#
+#
+
+
+__version__="0.3.0"
+__author__="Franklin Henriquez"
+__email__="franklin.a.henriquez@gmail.com"
+
 
 # Set magic variables for current file & dir
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
 __base="$(basename ${__file} .sh)"
-__root="$(cd "$(dirname "${__dir}")" && pwd)" 
+__root="$(cd "$(dirname "${__dir}")" && pwd)"
+
+
+# Script Config Vars
+
+# Color Codes
+# DESC: Initialize color variables
+# ARGS: None
+function echo_color_init(){
+
+    Color_Off='\033[0m'       # Text Reset
+    NC='\e[m'                 # Color Reset
+
+    # Regular Colors
+    Black='\033[0;30m'        # Black
+    Red='\033[0;31m'          # Red
+    Green='\033[0;32m'        # Green
+    Yellow='\033[0;33m'       # Yellow
+    Blue='\033[0;34m'         # Blue
+    Purple='\033[0;35m'       # Purple
+    Cyan='\033[0;36m'         # Cyan
+    White='\033[0;37m'        # White
+
+    # Bold
+    BBlack='\033[1;30m'       # Black
+    BRed='\033[1;31m'         # Red
+    BGreen='\033[1;32m'       # Green
+    BYellow='\033[1;33m'      # Yellow
+    BBlue='\033[1;34m'        # Blue
+    BPurple='\033[1;35m'      # Purple
+    BCyan='\033[1;36m'        # Cyan
+    BWhite='\033[1;37m'       # White
+
+    # High Intensity
+    IBlack='\033[0;90m'       # Black
+    IRed='\033[0;91m'         # Red
+    IGreen='\033[0;92m'       # Green
+    IYellow='\033[0;93m'      # Yellow
+    IBlue='\033[0;94m'        # Blue
+    IPurple='\033[0;95m'      # Purple
+    ICyan='\033[0;96m'        # Cyan
+    IWhite='\033[0;97m'       # White
+
+}
 
 # DESC: Generic script initialisation
 # ARGS: None
@@ -142,7 +197,7 @@ function parse_params() {
 function print_location_info(){
 
 	info=$1
-	
+
 	if [[ ${day} -eq 1 ]]
 	then
 		echo ${info} | \
@@ -157,15 +212,15 @@ function print_location_info(){
 	then
 		echo ${info} | \
             jq '.properties.periods[:9]' | jq -r '.[] | "\(.startTime)
-        \r\(.temperature) \(.temperatureUnit) degrees 
+        \r\(.temperature) \(.temperatureUnit) degrees
         \rwith a \(.windDirection) wind at \(.windSpeed)
         \r\(.shortForecast)\n"'
-	else 
+	else
 		echo ${info} | \
             jq '.properties.periods[:6]' | \
             jq -r '.[] | "\(.name): \(.detailedForecast) \n"'
 	fi
-	
+
 	return 0
 }
 # DESC: Main control flow
@@ -187,22 +242,31 @@ function main() {
         usage
         exit 2
     fi
-	
+
 	day=0
 	hourly=0
 	mid_week=0
 	week=0
 
 	get_params="$@"
-    query=$( echo ${get_params} | tr ' ' '\n' | grep -v '-') 
+    query=$( echo ${get_params} | tr ' ' '\n' | grep -v '-')
     sorted_params=$( echo ${get_params} | tr ' ' '\n' | \
         grep '-' | sort | tr '\n' ' ' | sed 's/ *$//')
     parse_params "${sorted_params}"
 
 	# Get latitude and longtitude
-	coor=$(geolocate -c "${query}, USA" | awk '{print $2}' | tr '\n' ',')
+# 	coor=$(geolocate -c "${query}" | awk '{print $2}' | tr '\n' ',')
+    # The precision of latitude/longitude points is limited to 4 decimal
+    # digits for efficiency. The location attribute contains your request
+    # mapped to the nearest supported point.
+    # If your client supports it, you will be redirected.
+	coor=$(geolocate -c "${query}" | grep 'Lat\|Long' | awk '{print $2}' | tr '\n' ,)
 
-	api='https://api.weather.gov/'
+    lat=$(printf "%2.4f\n" "$(echo $coor | awk -F ',' '{print $1}')")
+    lon=$(printf "%2.4f\n" "$(echo $coor | awk -F ',' '{print $2}')")
+    coor="${lat},${lon}"
+
+	api='https://api.weather.gov'
 	args='/points/'
 	if [[ $hourly -eq 1 ]]
 	then
@@ -212,8 +276,8 @@ function main() {
 	fi
 
 	resp=$(curl -L -X GET "${converter}" -H "accept: application/geo+json"\
-        2> /dev/null) 
-	
+        2> /dev/null)
+
 	#echo ${resp} | jq '.properties.periods[:6]' | jq -r '.[] | "\(.name): \(.detailedForecast) \n"'
 	print_location_info "${resp}"
 	exit 0
