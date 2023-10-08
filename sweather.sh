@@ -13,12 +13,14 @@
 
 # Required binaries:
 # Creating variable to validate binaries.
-# - GNU bash 4+
+# - GNU bash 3+
 REQUIRED_BINARIES="
 awk
+cut
 curl
 getopt
 geolocate
+grep
 jq
 "
 
@@ -394,6 +396,11 @@ function main() {
 
                 coor="${lat},${lon}"
 
+                # Get latitude and longitude
+                # The precision of latitude/longitude points is limited to 4 decimal
+                # digits for efficiency. The location attribute contains your request
+                # mapped to the nearest supported point.
+
 	            resp=$(curl -L -X GET "${api}${coor%?}" -H "accept: application/geo+json"\
                 2> /dev/null)
 
@@ -425,19 +432,10 @@ function main() {
 	    print_location_info ${result}
     done
 
-    #tmp=$(echo "${results[0]}" | awk -F ':' '{print $2}' | jq 'keys')
-    #echo $tmp | jq 
-
-	# Get latitude and longitude
-    # coor=$(geolocate -c "${query}" | awk '{print $2}' | tr '\n' ',')
-    # The precision of latitude/longitude points is limited to 4 decimal
-    # digits for efficiency. The location attribute contains your request
-    # mapped to the nearest supported point.
-    # If your client supports it, you will be redirected.
-
-	#echo ${resp} | jq '.properties.periods[:6]' | jq -r '.[] | "\(.name): \(.detailedForecast) \n"'
-
+    return 0
 }
 
 # Start main function
 main "$@"
+
+exit 0
