@@ -335,7 +335,7 @@ function main() {
         IFS=${OLD_IFS}
         if [[ $(echo ${pos_args[@]} | grep -c '\-\-') -gt 0 ]]
         then
-            debug "Getting propery pos_args"
+            debug "Getting property ${pos_args[@]}"
             # Getting everything to the right of the '--'
             tmp="${pos_args[@]}"
             IFS=' ' read -r -a pos_args <<< "${tmp#*"--"}"
